@@ -70,11 +70,31 @@
 
       // Get active tab
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const tabUrl = tab.url || '';
 
-      // Request extraction from content script (main frame only)
-      const extractedData = await chrome.tabs.sendMessage(tab.id, {
-        action: 'extractInvoice'
-      });
+      let extractedData;
+
+      // If the active tab is a direct PDF URL, process it as PDF
+      if (tabUrl.toLowerCase().includes('.pdf')) {
+        console.log('Active tab looks like a PDF URL, processing as PDF:', tabUrl);
+
+        const pdfResult = await chrome.runtime.sendMessage({
+          action: 'processPDF',
+          pdfUrl: tabUrl,
+          pdfType: 'direct'
+        });
+
+        if (pdfResult.error) {
+          throw new Error(pdfResult.error);
+        }
+
+        extractedData = pdfResult;
+      } else {
+        // Request extraction from content script (main frame only)
+        extractedData = await chrome.tabs.sendMessage(tab.id, {
+          action: 'extractInvoice'
+        });
+      }
 
       console.log('Extracted data:', extractedData);
 

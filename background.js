@@ -54,13 +54,25 @@ async function handlePDFProcessing(message) {
     // Fetch PDF data
     const pdfData = await fetchPDF(pdfUrl, pdfType);
 
-    // Try text extraction first
-    let extractedText = await extractTextFromPDF(pdfData);
+    // Ensure offscreen PDF parser exists
+    await setupOffscreenDocument();
 
-    // If text extraction fails or returns empty, try OCR
-    if (!extractedText || extractedText.trim().length < 100) {
-      console.log('Text layer insufficient, attempting OCR...');
-      extractedText = await extractWithOCR(pdfData);
+    // Ask offscreen document (PDF.js) to extract text
+    const offscreenResult = await chrome.runtime.sendMessage({
+      action: 'extractPDFText',
+      pdfData: Array.from(pdfData)
+    });
+
+    if (!offscreenResult || !offscreenResult.success) {
+      throw new Error(offscreenResult?.error || 'Offscreen PDF text extraction failed');
+    }
+
+    let extractedText = offscreenResult.text || '';
+
+    // Fallback to heuristic extraction if offscreen text is too short
+    if (!extractedText || extractedText.trim().length < 50) {
+      console.log('Offscreen text insufficient, attempting heuristic extraction...');
+      extractedText = await extractTextFromPDF(pdfData);
     }
 
     return {
@@ -206,7 +218,14 @@ async function handlePDFFileProcessing(message) {
       throw new Error(result.error || 'PDF extraction failed in offscreen document');
     }
 
-    const extractedText = result.text;
+    let extractedText = result.text;
+
+    // Fallback to heuristic extraction if needed
+    if (!extractedText || extractedText.trim().length < 50) {
+      console.log('Offscreen text insufficient for file, attempting heuristic extraction...');
+      const uint8Array = new Uint8Array(pdfData);
+      extractedText = await extractTextFromPDF(uint8Array);
+    }
     console.log('Text extracted from offscreen:', extractedText ? extractedText.length : 0, 'characters');
 
     if (!extractedText || extractedText.trim().length < 50) {

@@ -16,6 +16,9 @@
     "service_worker": "background.js",
     "type": "module"
   },
+  "offscreen_pages": [
+    "offscreen/offscreen.html"
+  ],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
