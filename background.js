@@ -42,7 +42,125 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     saveApiKey(message.apiKey).then(sendResponse);
     return true;
   }
+
+  // Wise transfer flow from sidebar
+  if (message.action === 'createWiseTransfer') {
+    createWiseTransferFlow(message.transferData)
+      .then(sendResponse)
+      .catch(error => {
+        console.error('Wise transfer flow error:', error);
+        sendResponse({ success: false, error: error.message || 'Wise transfer failed' });
+      });
+    return true;
+  }
 });
+
+// ===== Wise Sandbox API integration =====
+
+// NOTE: Using static sandbox bearer token provided by user
+const WISE_SANDBOX_TOKEN = 'a95c29fe-241b-4951-ad3a-ebff3d7c6787';
+const WISE_API_BASE = 'https://api.wise-sandbox.com';
+
+/**
+ * Execute full Wise transfer flow:
+ * 1) Create quote
+ * 2) Create recipient account
+ * 3) Create transfer
+ */
+async function createWiseTransferFlow(transferData) {
+  const profileId = 28692607; // fixed sandbox profile
+
+  const { amount, currency, receiverName, bankFields, referenceNumber } = transferData;
+
+  if (!amount || !currency || !receiverName || !bankFields) {
+    throw new Error('Missing required transfer data');
+  }
+
+  // 1) Create quote
+  const quoteBody = {
+    sourceCurrency: currency,
+    targetCurrency: currency,
+    sourceAmount: null,
+    targetAmount: parseFloat(amount),
+    profile: profileId,
+    targetAccount: null,
+    preferredPayIn: 'BALANCE'
+  };
+
+  const quote = await wisePost(`/v3/profiles/${profileId}/quotes`, quoteBody);
+
+  if (!quote || !quote.id) {
+    throw new Error('Failed to create Wise quote');
+  }
+
+  // 2) Create recipient account (IBAN only for now)
+  const iban = bankFields.iban || bankFields.IBAN || null;
+  if (!iban) {
+    throw new Error('IBAN is required for Wise transfer in this demo');
+  }
+
+  const cleanIban = iban.replace(/\s+/g, '');
+
+  const recipientBody = {
+    accountHolderName: receiverName,
+    currency: currency,
+    type: 'iban',
+    profile: profileId,
+    details: {
+      legalType: 'PRIVATE',
+      IBAN: cleanIban
+    }
+  };
+
+  const recipient = await wisePost('/v1/accounts', recipientBody);
+
+  if (!recipient || !recipient.id) {
+    throw new Error('Failed to create Wise recipient account');
+  }
+
+  // 3) Create transfer
+  const transferBody = {
+    targetAccount: recipient.id,
+    quoteUuid: quote.id,
+    customerTransactionId: crypto.randomUUID(),
+    details: {
+      reference: referenceNumber || 'Invoice payment',
+      transferPurpose: 'verification.transfers.purpose.pay.bills'
+    }
+  };
+
+  const transfer = await wisePost('/v1/transfers', transferBody);
+
+  if (!transfer || !transfer.id) {
+    throw new Error('Failed to create Wise transfer');
+  }
+
+  return { success: true, transferId: transfer.id, quoteId: quote.id, recipientId: recipient.id };
+}
+
+/**
+ * Helper for Wise POST requests
+ */
+async function wisePost(path, body) {
+  const url = `${WISE_API_BASE}${path}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${WISE_SANDBOX_TOKEN}`
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    console.error('Wise API error:', response.status, text);
+    throw new Error(`Wise API error ${response.status}`);
+  }
+
+  return response.json();
+}
 
 /**
  * Handle PDF processing

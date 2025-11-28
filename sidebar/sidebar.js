@@ -497,9 +497,17 @@
       // Show full-screen loading
       showFullscreenLoading();
 
-      // Here you would send to your bank's API
-      // For now, just simulate success
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Call background to execute Wise sandbox transfer flow
+      const response = await chrome.runtime.sendMessage({
+        action: 'createWiseTransfer',
+        transferData: formData
+      });
+
+      if (!response || !response.success) {
+        throw new Error(response && response.error ? response.error : 'Transfer failed');
+      }
+
+      console.log('Wise transfer created:', response);
 
       // Hide loading and show success screen
       hideFullscreenLoading();
@@ -508,7 +516,7 @@
     } catch (error) {
       console.error('Submission error:', error);
       hideFullscreenLoading();
-      showError('Failed to submit payment. Please try again.');
+      showError(error.message || 'Failed to submit payment. Please try again.');
     }
   }
 
