@@ -24,6 +24,7 @@ body {
 .container {
   max-width: 100%;
   padding: 20px;
+  padding-bottom: 20px;
   background: white;
   min-height: 100vh;
 }
@@ -275,7 +276,7 @@ textarea.auto-filled {
 }
 
 /* Buttons */
-.form-actions {
+.form-actions-old {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -369,12 +370,31 @@ textarea.auto-filled {
   filter: none;
 }
 
-/* Footer */
+/* Footer - Not sticky */
 footer {
   margin-top: 32px;
   padding-top: 16px;
   border-top: 1px solid #0E0F0C1F;
   text-align: center;
+}
+
+/* Form actions - Sticky with solid background */
+.form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 99;
+  background: white;
+  padding: 20px;
+  padding-bottom: 24px;
+  margin-left: -20px;
+  margin-right: -20px;
+  margin-bottom: -20px;
+  padding-left: 20px;
+  padding-right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 32px;
 }
 
 .footer-text {
@@ -549,4 +569,72 @@ footer {
 
 #return-btn {
   min-width: 200px;
+}
+
+/* Collapsible optional section */
+.optional-section {
+  border: 1px solid #0E0F0C1F;
+  border-radius: 12px;
+  padding: 0;
+  margin-bottom: 32px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s ease;
+  border-radius: 12px;
+}
+
+.section-header:hover {
+  background: #16330008;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 16px;
+  color: #454745;
+}
+
+.toggle-icon {
+  color: #6A6C6A;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+.section-header.expanded .toggle-icon {
+  transform: rotate(180deg);
+}
+
+.optional-fields {
+  padding: 0 20px 20px 20px;
+  animation: slideDown 0.3s ease;
+}
+
+.optional-fields.hidden {
+  display: none;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Field help text */
+.field-help {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6A6C6A;
+  font-style: italic;
 }

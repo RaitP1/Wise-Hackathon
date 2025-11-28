@@ -22,10 +22,144 @@
   const returnBtn = document.getElementById('return-btn');
   const dropZone = document.getElementById('drop-zone');
 
+  // Currency-specific bank field requirements
+  const CURRENCY_BANK_FIELDS = {
+    // IBAN-based currencies
+    'BGN': ['iban'],
+    'CHF': ['iban'],
+    'CZK': ['iban'],
+    'DKK': ['iban'],
+    'EUR': ['iban'],
+    'GEL': ['iban'],
+    'HRK': ['iban'],
+    'HUF': ['iban'],
+    'NOK': ['iban'],
+    'PKR': ['iban'],
+    'PLN': ['iban'],
+    'RON': ['iban'],
+    'SEK': ['iban'],
+    'TRY': ['iban'],
+
+    // GBP - Sort code and account number
+    'GBP': ['sortCode', 'accountNumber'],
+
+    // USD - Routing number, account number, account type
+    'USD': ['routingNumber', 'accountNumber', 'accountType'],
+
+    // CAD - Institution number, transit number, account number
+    'CAD': ['institutionNumber', 'transitNumber', 'accountNumber'],
+
+    // AUD - BSB code and account number
+    'AUD': ['bsbCode', 'accountNumber'],
+
+    // NZD - Account number (with bank/branch/account/suffix format)
+    'NZD': ['accountNumber'],
+
+    // INR - IFSC code and account number
+    'INR': ['ifscCode', 'accountNumber'],
+
+    // CNY - CNAPS code and account number
+    'CNY': ['cnapsCode', 'accountNumber'],
+
+    // JPY - Bank code, branch code, account number, account type
+    'JPY': ['bankCode', 'branchCode', 'accountNumber', 'accountType'],
+
+    // SGD - Bank code, branch code, account number
+    'SGD': ['bankCode', 'branchCode', 'accountNumber'],
+
+    // HKD - Bank code, branch code, account number
+    'HKD': ['bankCode', 'branchCode', 'accountNumber'],
+
+    // BRL - Bank code, branch code, account number, account type
+    'BRL': ['bankCode', 'branchCode', 'accountNumber', 'accountType'],
+
+    // MXN - CLABE number
+    'MXN': ['clabeNumber'],
+
+    // ZAR - Account number
+    'ZAR': ['accountNumber'],
+
+    // Default for other currencies - account number
+    'DEFAULT': ['accountNumber']
+  };
+
+  // Field labels and placeholders
+  const FIELD_CONFIG = {
+    iban: {
+      label: 'IBAN',
+      placeholder: 'DE89 3704 0044 0532 0130 00',
+      help: 'International Bank Account Number'
+    },
+    sortCode: {
+      label: 'Sort Code',
+      placeholder: '40-47-84',
+      help: '6-digit UK bank sort code'
+    },
+    accountNumber: {
+      label: 'Account Number',
+      placeholder: '12345678',
+      help: 'Bank account number'
+    },
+    routingNumber: {
+      label: 'Routing Number',
+      placeholder: '026009593',
+      help: '9-digit ABA routing number'
+    },
+    accountType: {
+      label: 'Account Type',
+      placeholder: 'Select account type',
+      help: 'Checking or Savings',
+      type: 'select',
+      options: [
+        { value: 'checking', label: 'Checking' },
+        { value: 'savings', label: 'Savings' }
+      ]
+    },
+    institutionNumber: {
+      label: 'Institution Number',
+      placeholder: '001',
+      help: '3-digit Canadian institution number'
+    },
+    transitNumber: {
+      label: 'Transit Number',
+      placeholder: '12345',
+      help: '5-digit Canadian transit number'
+    },
+    bsbCode: {
+      label: 'BSB Code',
+      placeholder: '062-001',
+      help: '6-digit Australian BSB code'
+    },
+    ifscCode: {
+      label: 'IFSC Code',
+      placeholder: 'SBIN0001234',
+      help: '11-character Indian IFSC code'
+    },
+    cnapsCode: {
+      label: 'CNAPS Code',
+      placeholder: '102100099996',
+      help: '12-digit Chinese CNAPS code'
+    },
+    bankCode: {
+      label: 'Bank Code',
+      placeholder: '0001',
+      help: 'Bank identification code'
+    },
+    branchCode: {
+      label: 'Branch Code',
+      placeholder: '001',
+      help: 'Branch identification code'
+    },
+    clabeNumber: {
+      label: 'CLABE Number',
+      placeholder: '012180001234567897',
+      help: '18-digit Mexican CLABE number'
+    }
+  };
+
   // Form fields
   const fields = {
     receiverName: document.getElementById('receiver-name'),
-    iban: document.getElementById('iban'),
     amount: document.getElementById('amount'),
     currency: document.getElementById('currency'),
     referenceNumber: document.getElementById('reference-number'),
@@ -49,6 +183,17 @@
   dropZone.addEventListener('dragleave', handleDragLeave);
   dropZone.addEventListener('drop', handleDrop);
   dropZone.addEventListener('click', handleDropZoneClick);
+
+  // Currency change listener
+  fields.currency.addEventListener('change', handleCurrencyChange);
+
+  // Optional fields toggle
+  const toggleOptional = document.getElementById('toggle-optional');
+  const optionalFields = document.getElementById('optional-fields');
+  toggleOptional.addEventListener('click', () => {
+    optionalFields.classList.toggle('hidden');
+    toggleOptional.classList.toggle('expanded');
+  });
 
   /**
    * Handle invoice extraction
@@ -153,21 +298,26 @@
     console.log('=== FILLING FORM ===');
     console.log('Data received:', data);
 
-    // Fill each field and mark as auto-filled
+    // STEP 1: Set currency first and re-render bank fields
+    if (data.currency) {
+      console.log('✓ Setting currency:', data.currency);
+      fields.currency.value = data.currency;
+      fields.currency.classList.add('auto-filled');
+
+      // Re-render bank fields for the detected currency
+      console.log('Re-rendering bank fields for currency:', data.currency);
+      renderBankFields(data.currency);
+    } else {
+      console.log('✗ currency is empty/null');
+    }
+
+    // STEP 2: Fill basic fields
     if (data.receiver_name) {
       console.log('✓ Setting receiver_name:', data.receiver_name);
       fields.receiverName.value = data.receiver_name;
       fields.receiverName.classList.add('auto-filled');
     } else {
       console.log('✗ receiver_name is empty/null');
-    }
-
-    if (data.iban) {
-      console.log('✓ Setting iban:', data.iban);
-      fields.iban.value = formatIBAN(data.iban);
-      fields.iban.classList.add('auto-filled');
-    } else {
-      console.log('✗ iban is empty/null');
     }
 
     if (data.amount) {
@@ -178,13 +328,43 @@
       console.log('✗ amount is empty/null');
     }
 
-    if (data.currency) {
-      console.log('✓ Setting currency:', data.currency);
-      fields.currency.value = data.currency;
-      fields.currency.classList.add('auto-filled');
-    } else {
-      console.log('✗ currency is empty/null');
-    }
+    // STEP 3: Fill bank fields (after they've been rendered for the correct currency)
+    // Use setTimeout to ensure bank fields are rendered before we try to fill them
+    setTimeout(() => {
+      const bankFieldMapping = {
+        'iban': 'iban',
+        'account_number': 'accountNumber',
+        'routing_number': 'routingNumber',
+        'account_type': 'accountType',
+        'sort_code': 'sortCode',
+        'ifsc_code': 'ifscCode',
+        'bsb_code': 'bsbCode',
+        'bank_code': 'bankCode',
+        'branch_code': 'branchCode',
+        'institution_number': 'institutionNumber',
+        'transit_number': 'transitNumber',
+        'cnaps_code': 'cnapsCode',
+        'clabe_number': 'clabeNumber'
+      };
+
+      Object.entries(bankFieldMapping).forEach(([aiField, formField]) => {
+        if (data[aiField]) {
+          console.log(`✓ Setting ${aiField}:`, data[aiField]);
+          const field = document.getElementById(`bank-${formField}`);
+          if (field) {
+            // Special handling for IBAN formatting
+            if (formField === 'iban') {
+              field.value = formatIBAN(data[aiField]);
+            } else {
+              field.value = data[aiField];
+            }
+            field.classList.add('auto-filled');
+          } else {
+            console.log(`✗ Field not found: bank-${formField}`);
+          }
+        }
+      });
+    }, 100);
 
     if (data.reference_number) {
       console.log('✓ Setting reference_number:', data.reference_number);
@@ -226,6 +406,16 @@
       console.log('✗ due_date is empty/null');
     }
 
+    // Auto-expand optional fields if any invoice data was filled
+    if (data.invoice_number || data.issue_date || data.due_date) {
+      const toggleOptional = document.getElementById('toggle-optional');
+      const optionalFields = document.getElementById('optional-fields');
+      if (optionalFields.classList.contains('hidden')) {
+        optionalFields.classList.remove('hidden');
+        toggleOptional.classList.add('expanded');
+      }
+    }
+
     console.log('=== FORM FILLING COMPLETE ===');
   }
 
@@ -248,9 +438,18 @@
   async function handleSubmit(e) {
     e.preventDefault();
 
-    // Validate required fields
-    if (!fields.receiverName.value || !fields.iban.value || !fields.amount.value) {
-      showError('Please fill in all required fields (Receiver Name, IBAN, Amount)');
+    // Validate basic required fields
+    if (!fields.receiverName.value || !fields.amount.value) {
+      showError('Please fill in all required fields (Receiver Name, Amount)');
+      return;
+    }
+
+    // Validate bank fields
+    const bankFields = getBankFieldValues();
+    const hasEmptyBankField = Object.values(bankFields).some(value => !value || value.trim() === '');
+
+    if (hasEmptyBankField) {
+      showError('Please fill in all required bank account fields');
       return;
     }
 
@@ -258,7 +457,7 @@
       // Collect form data
       const formData = {
         receiverName: fields.receiverName.value,
-        iban: fields.iban.value,
+        bankFields: getBankFieldValues(),
         amount: fields.amount.value,
         currency: fields.currency.value,
         referenceNumber: fields.referenceNumber.value,
@@ -602,6 +801,100 @@
     });
   }
 
+  /**
+   * Handle currency change - update bank fields dynamically
+   */
+  function handleCurrencyChange() {
+    const selectedCurrency = fields.currency.value;
+    console.log('Currency changed to:', selectedCurrency);
+    renderBankFields(selectedCurrency);
+  }
+
+  /**
+   * Render bank account fields based on currency
+   */
+  function renderBankFields(currency) {
+    const container = document.getElementById('bank-fields-container');
+    container.innerHTML = '';
+
+    // Get required fields for this currency
+    const requiredFields = CURRENCY_BANK_FIELDS[currency] || CURRENCY_BANK_FIELDS['DEFAULT'];
+
+    // Create each field
+    requiredFields.forEach(fieldName => {
+      const config = FIELD_CONFIG[fieldName];
+      if (!config) return;
+
+      const formGroup = document.createElement('div');
+      formGroup.className = 'form-group';
+
+      const label = document.createElement('label');
+      label.htmlFor = `bank-${fieldName}`;
+      label.textContent = `${config.label} *`;
+      formGroup.appendChild(label);
+
+      if (config.type === 'select') {
+        // Create select field
+        const select = document.createElement('select');
+        select.id = `bank-${fieldName}`;
+        select.name = `bank-${fieldName}`;
+        select.required = true;
+
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = config.placeholder;
+        select.appendChild(defaultOption);
+
+        config.options.forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt.value;
+          option.textContent = opt.label;
+          select.appendChild(option);
+        });
+
+        formGroup.appendChild(select);
+      } else {
+        // Create text input
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = `bank-${fieldName}`;
+        input.name = `bank-${fieldName}`;
+        input.placeholder = config.placeholder;
+        input.required = true;
+        formGroup.appendChild(input);
+      }
+
+      // Add help text
+      if (config.help) {
+        const helpText = document.createElement('small');
+        helpText.className = 'field-help';
+        helpText.textContent = config.help;
+        formGroup.appendChild(helpText);
+      }
+
+      container.appendChild(formGroup);
+    });
+  }
+
+  /**
+   * Get bank field values for form submission
+   */
+  function getBankFieldValues() {
+    const values = {};
+    const container = document.getElementById('bank-fields-container');
+    const inputs = container.querySelectorAll('input, select');
+
+    inputs.forEach(input => {
+      const fieldName = input.id.replace('bank-', '');
+      values[fieldName] = input.value;
+    });
+
+    return values;
+  }
+
   // Initialize
   console.log('Sidebar loaded');
+
+  // Render initial bank fields for EUR (default)
+  renderBankFields('EUR');
 })();

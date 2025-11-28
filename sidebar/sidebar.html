@@ -74,10 +74,8 @@
           <input type="text" id="receiver-name" name="receiver-name" required>
         </div>
 
-        <div class="form-group">
-          <label for="iban">IBAN / Account Number *</label>
-          <input type="text" id="iban" name="iban" required placeholder="DE89 3704 0044 0532 0130 00">
-        </div>
+        <!-- Dynamic bank account fields will be inserted here -->
+        <div id="bank-fields-container"></div>
       </div>
 
       <div class="form-section">
@@ -267,23 +265,30 @@
         </div>
       </div>
 
-      <div class="form-section">
-        <h2>Invoice Information</h2>
-
-        <div class="form-group">
-          <label for="invoice-number">Invoice Number</label>
-          <input type="text" id="invoice-number" name="invoice-number" placeholder="INV-2025-0012">
+      <div class="form-section optional-section">
+        <div class="section-header" id="toggle-optional">
+          <h2>Invoice Information (Optional)</h2>
+          <svg class="toggle-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
         </div>
 
-        <div class="form-row">
+        <div class="optional-fields hidden" id="optional-fields">
           <div class="form-group">
-            <label for="issue-date">Issue Date</label>
-            <input type="date" id="issue-date" name="issue-date">
+            <label for="invoice-number">Invoice Number</label>
+            <input type="text" id="invoice-number" name="invoice-number" placeholder="INV-2025-0012">
           </div>
 
-          <div class="form-group">
-            <label for="due-date">Due Date</label>
-            <input type="date" id="due-date" name="due-date">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="issue-date">Issue Date</label>
+              <input type="date" id="issue-date" name="issue-date">
+            </div>
+
+            <div class="form-group">
+              <label for="due-date">Due Date</label>
+              <input type="date" id="due-date" name="due-date">
+            </div>
           </div>
         </div>
       </div>

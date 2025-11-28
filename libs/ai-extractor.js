@@ -102,26 +102,40 @@ function getSystemPrompt() {
 
 Extract the following fields from the invoice. If a field is not found, use null:
 
+BASIC INVOICE INFORMATION:
 1. invoice_number: The invoice number or ID
 2. amount: The total amount to be paid (numbers only, no currency symbols)
 3. currency: The currency code (EUR, USD, GBP, etc.)
 4. due_date: Payment due date (YYYY-MM-DD format)
 5. issue_date: Invoice issue date (YYYY-MM-DD format)
-6. iban: International Bank Account Number (if present)
-7. account_number: Alternative account number (if IBAN not present)
-8. reference_number: Payment reference number (Viitenumber/KID/Payment Reference)
-9. description: Brief payment description or invoice subject
-10. receiver_name: Name of the payee/receiver/vendor
-11. receiver_address: Full address of receiver (if present)
-12. sender_name: Name of the payer/sender (if present)
+6. reference_number: Payment reference number (Viitenumber/KID/Payment Reference)
+7. description: Brief payment description or invoice subject
+8. receiver_name: Name of the payee/receiver/vendor
+9. receiver_address: Full address of receiver (if present)
+10. sender_name: Name of the payer/sender (if present)
+
+BANK ACCOUNT DETAILS (extract all that are present):
+11. iban: International Bank Account Number (for EUR, CHF, NOK, SEK, DKK, etc.)
+12. account_number: Bank account number (for USD, GBP, AUD, INR, etc.)
+13. routing_number: US ABA routing number (9 digits, for USD)
+14. account_type: Account type (CHECKING or SAVINGS, for USD/JPY/BRL)
+15. sort_code: UK sort code (6 digits, for GBP)
+16. ifsc_code: Indian IFSC code (11 characters, for INR)
+17. bsb_code: Australian BSB code (6 digits, for AUD)
+18. bank_code: Bank identification code (for JPY, SGD, HKD, BRL)
+19. branch_code: Branch identification code (for JPY, SGD, HKD, BRL)
+20. institution_number: Canadian institution number (3 digits, for CAD)
+21. transit_number: Canadian transit number (5 digits, for CAD)
+22. cnaps_code: Chinese CNAPS code (12 digits, for CNY)
+23. clabe_number: Mexican CLABE number (18 digits, for MXN)
 
 Important instructions:
 - Understand context semantically, not just keywords
 - Support all languages automatically (English, Estonian, Norwegian, German, French, etc.)
 - For dates: convert any date format to YYYY-MM-DD
 - For amounts: extract only the number, remove currency symbols and thousand separators
-- For IBAN: validate format if possible
-- For reference numbers: look for patterns like RF**, KID numbers, or payment references
+- Extract ALL bank account fields that are present in the document
+- For account_type: convert to uppercase (CHECKING or SAVINGS)
 - If multiple amounts exist (subtotal, tax, total), extract the TOTAL amount
 - Be precise and accurate
 
@@ -130,15 +144,26 @@ Return ONLY a JSON object with these fields. Example:
 {
   "invoice_number": "INV-2025-0012",
   "amount": "1250.00",
-  "currency": "EUR",
+  "currency": "USD",
   "due_date": "2025-12-15",
   "issue_date": "2025-11-28",
-  "iban": "DE89370400440532013000",
-  "account_number": null,
-  "reference_number": "RF18539007547034",
+  "iban": null,
+  "account_number": "987654321",
+  "routing_number": "021000021",
+  "account_type": "CHECKING",
+  "sort_code": null,
+  "ifsc_code": null,
+  "bsb_code": null,
+  "bank_code": null,
+  "branch_code": null,
+  "institution_number": null,
+  "transit_number": null,
+  "cnaps_code": null,
+  "clabe_number": null,
+  "reference_number": "INV-USD-001",
   "description": "Consulting services November 2025",
-  "receiver_name": "Global Solutions GmbH",
-  "receiver_address": "Hauptstrasse 123, 10115 Berlin, Germany",
+  "receiver_name": "Test US Receiver",
+  "receiver_address": "123 Main St, New York, NY 10001",
   "sender_name": null
 }`;
 }
@@ -153,12 +178,26 @@ function normalizeFields(fields) {
     currency: normalizeCurrency(fields.currency),
     due_date: normalizeDate(fields.due_date),
     issue_date: normalizeDate(fields.issue_date),
-    iban: normalizeIBAN(fields.iban || fields.account_number),
     reference_number: fields.reference_number || '',
     description: fields.description || '',
     receiver_name: fields.receiver_name || '',
     receiver_address: fields.receiver_address || '',
-    sender_name: fields.sender_name || ''
+    sender_name: fields.sender_name || '',
+
+    // Bank account fields
+    iban: normalizeIBAN(fields.iban),
+    account_number: fields.account_number || '',
+    routing_number: fields.routing_number || '',
+    account_type: fields.account_type ? fields.account_type.toUpperCase() : '',
+    sort_code: fields.sort_code || '',
+    ifsc_code: fields.ifsc_code || '',
+    bsb_code: fields.bsb_code || '',
+    bank_code: fields.bank_code || '',
+    branch_code: fields.branch_code || '',
+    institution_number: fields.institution_number || '',
+    transit_number: fields.transit_number || '',
+    cnaps_code: fields.cnaps_code || '',
+    clabe_number: fields.clabe_number || ''
   };
 
   return normalized;
