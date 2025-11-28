@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice INV-2025-001 - Global Solutions GmbH</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .invoice-header {
+            border-bottom: 3px solid #2196f3;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .invoice-header h1 {
+            color: #2196f3;
+            margin: 0;
+        }
+        .invoice-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #2196f3;
+            font-size: 16px;
+        }
+        .field {
+            margin-bottom: 10px;
+        }
+        .label {
+            font-weight: bold;
+            color: #555;
+        }
+        .amount-due {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .amount-due .total {
+            font-size: 32px;
+            color: #2196f3;
+            font-weight: bold;
+        }
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .items-table th {
+            background: #2196f3;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        .items-table td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .items-table tr:hover {
+            background: #f8f9fa;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-header">
+        <h1>INVOICE</h1>
+        <p><strong>Global Solutions GmbH</strong></p>
+        <p>Hauptstrasse 123<br>10115 Berlin, Germany<br>VAT: DE123456789</p>
+    </div>
+
+    <div class="invoice-info">
+        <div class="section">
+            <h2>Bill To:</h2>
+            <div class="field">
+                <span class="label">Company:</span> Acme Corporation Ltd
+            </div>
+            <div class="field">
+                <span class="label">Address:</span> 456 Business Ave<br>London SW1A 1AA, United Kingdom
+            </div>
+            <div class="field">
+                <span class="label">VAT Number:</span> GB987654321
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Invoice Details:</h2>
+            <div class="field">
+                <span class="label">Invoice Number:</span> INV-2025-001
+            </div>
+            <div class="field">
+                <span class="label">Invoice Date:</span> November 28, 2025
+            </div>
+            <div class="field">
+                <span class="label">Due Date:</span> December 28, 2025
+            </div>
+            <div class="field">
+                <span class="label">Payment Reference:</span> RF18539007547034
+            </div>
+        </div>
+    </div>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Consulting Services - Strategic Planning</td>
+                <td>20 hours</td>
+                <td>€50.00</td>
+                <td>€1,000.00</td>
+            </tr>
+            <tr>
+                <td>Technical Support - November 2025</td>
+                <td>1 month</td>
+                <td>€150.00</td>
+                <td>€150.00</td>
+            </tr>
+            <tr>
+                <td>Software License - Annual</td>
+                <td>1</td>
+                <td>€100.00</td>
+                <td>€100.00</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="invoice-info">
+        <div></div>
+        <div class="section">
+            <div class="field">
+                <span class="label">Subtotal:</span> €1,250.00
+            </div>
+            <div class="field">
+                <span class="label">Tax (0%):</span> €0.00
+            </div>
+            <div class="field" style="margin-top: 10px; padding-top: 10px; border-top: 2px solid #2196f3;">
+                <span class="label">Total Amount Due:</span> <strong>€1,250.00</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="amount-due">
+        <h2 style="margin-top: 0;">Amount Due</h2>
+        <div class="total">€1,250.00 EUR</div>
+        <p style="margin-bottom: 0;">Please pay by December 28, 2025</p>
+    </div>
+
+    <div class="section">
+        <h2>Payment Information:</h2>
+        <div class="field">
+            <span class="label">Account Holder:</span> Global Solutions GmbH
+        </div>
+        <div class="field">
+            <span class="label">Bank:</span> Deutsche Bank
+        </div>
+        <div class="field">
+            <span class="label">IBAN:</span> DE89 3704 0044 0532 0130 00
+        </div>
+        <div class="field">
+            <span class="label">BIC/SWIFT:</span> DEUTDEDBBER
+        </div>
+        <div class="field">
+            <span class="label">Payment Reference:</span> RF18539007547034
+        </div>
+    </div>
+
+    <div class="section" style="margin-top: 20px;">
+        <h2>Payment Description:</h2>
+        <p>Consulting services and technical support for November 2025 including strategic planning, ongoing technical support subscription, and annual software license renewal.</p>
+    </div>
+
+    <div class="footer">
+        <p><strong>Terms & Conditions:</strong></p>
+        <p>Payment is due within 30 days of invoice date. Late payments may incur a 5% monthly interest charge.
+        Please include the payment reference number with your transfer to ensure proper credit to your account.</p>
+
+        <p style="margin-top: 20px;">
+            <strong>Contact:</strong> accounting@globalsolutions.de | +49 30 1234567<br>
+            <strong>Website:</strong> www.globalsolutions.de
+        </p>
+
+        <p style="text-align: center; margin-top: 30px; color: #999;">
+            Thank you for your business!
+        </p>
+    </div>
+</body>
+</html>

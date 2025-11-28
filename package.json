@@ -1,0 +1,24 @@
+{
+  "name": "invoice-extraction-plugin",
+  "version": "1.0.0",
+  "description": "Browser plugin for automatic invoice data extraction using AI",
+  "scripts": {
+    "build": "echo 'No build step required - load directly in browser'",
+    "test": "echo 'No tests configured yet'",
+    "lint": "echo 'Linting not configured'"
+  },
+  "keywords": [
+    "chrome-extension",
+    "firefox-addon",
+    "invoice",
+    "extraction",
+    "ai",
+    "pdf",
+    "ocr",
+    "bank-transfer"
+  ],
+  "author": "Global Bank Development Team",
+  "license": "PROPRIETARY",
+  "devDependencies": {},
+  "dependencies": {}
+}

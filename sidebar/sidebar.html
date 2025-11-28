@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice Extraction - Bank Transfer</title>
+  <link rel="stylesheet" href="sidebar.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Bank Transfer</h1>
+      <p class="subtitle">Auto-filled from invoice data</p>
+    </header>
+
+    <!-- Status indicator -->
+    <div id="status" class="status hidden">
+      <div class="spinner"></div>
+      <span id="status-text">Extracting invoice data...</span>
+    </div>
+
+    <!-- Error message -->
+    <div id="error" class="error hidden">
+      <span id="error-text"></span>
+      <button id="dismiss-error" class="btn-link">Dismiss</button>
+    </div>
+
+    <!-- Success message -->
+    <div id="success" class="success hidden">
+      <span id="success-text">Invoice data extracted successfully!</span>
+    </div>
+
+    <!-- Main form -->
+    <form id="transfer-form">
+      <div class="form-section">
+        <h2>Receiver Information</h2>
+
+        <div class="form-group">
+          <label for="receiver-name">Receiver Name *</label>
+          <input type="text" id="receiver-name" name="receiver-name" required>
+        </div>
+
+        <div class="form-group">
+          <label for="iban">IBAN / Account Number *</label>
+          <input type="text" id="iban" name="iban" required placeholder="DE89 3704 0044 0532 0130 00">
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h2>Payment Details</h2>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="amount">Amount *</label>
+            <input type="text" id="amount" name="amount" required placeholder="0.00">
+          </div>
+
+          <div class="form-group">
+            <label for="currency">Currency *</label>
+            <select id="currency" name="currency" required>
+              <option value="EUR">EUR</option>
+              <option value="USD">USD</option>
+              <option value="GBP">GBP</option>
+              <option value="NOK">NOK</option>
+              <option value="SEK">SEK</option>
+              <option value="DKK">DKK</option>
+              <option value="CHF">CHF</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reference-number">Payment Reference / KID</label>
+          <input type="text" id="reference-number" name="reference-number" placeholder="RF18 5390 0754 7034">
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description / Payment Explanation</label>
+          <textarea id="description" name="description" rows="3" placeholder="Invoice payment for..."></textarea>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h2>Invoice Information</h2>
+
+        <div class="form-group">
+          <label for="invoice-number">Invoice Number</label>
+          <input type="text" id="invoice-number" name="invoice-number" placeholder="INV-2025-0012">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="issue-date">Issue Date</label>
+            <input type="date" id="issue-date" name="issue-date">
+          </div>
+
+          <div class="form-group">
+            <label for="due-date">Due Date</label>
+            <input type="date" id="due-date" name="due-date">
+          </div>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="form-actions">
+        <button type="button" id="extract-btn" class="btn btn-secondary">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          Extract Invoice Data
+        </button>
+
+        <button type="submit" id="send-btn" class="btn btn-primary">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+          </svg>
+          Send Payment
+        </button>
+      </div>
+    </form>
+
+    <!-- Footer -->
+    <footer>
+      <p class="footer-text">
+        <a href="#" id="settings-link">Settings</a> |
+        <a href="#" id="clear-form">Clear Form</a>
+      </p>
+    </footer>
+  </div>
+
+  <script src="sidebar.js"></script>
+</body>
+</html>
