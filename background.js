@@ -94,12 +94,15 @@ async function createWiseTransferFlow(transferData) {
   }
 
   // 2) Create recipient account (IBAN only for now)
-  const iban = bankFields.iban || bankFields.IBAN || null;
-  if (!iban) {
+  // Note: We display the scanned IBAN in the UI, but always use the hardcoded IBAN for actual transfers
+  const displayedIban = bankFields.iban || bankFields.IBAN || null;
+  if (!displayedIban) {
     throw new Error('IBAN is required for Wise transfer in this demo');
   }
 
-  const cleanIban = iban.replace(/\s+/g, '');
+  // HARDCODED IBAN - always use this for actual transfers
+  const actualIban = 'BE57967747682935';
+  const cleanIban = actualIban;
 
   const recipientBody = {
     accountHolderName: receiverName,
