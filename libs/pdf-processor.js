@@ -1,46 +1,60 @@
 /**
- * PDF Processing Module - Extracts text from PDFs using PDF.js
+ * PDF Processing Module - Extracts rough text from PDFs in a service worker-safe way.
+ *
+ * NOTE: We cannot use PDF.js here because dynamic import() is disallowed in
+ * service workers. Instead, we approximate text extraction by decoding the
+ * raw bytes and heuristically pulling out readable strings from the PDF.
  */
 
-// Import PDF.js from local files
-import * as pdfjsLib from './pdf.mjs';
-
-// Set worker source to the local worker file
-// Note: In service worker, this won't actually spawn a worker, PDF.js will run in main thread
-const workerSrc = chrome.runtime.getURL('libs/pdf.worker.mjs');
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
-
-console.log('PDF.js module loaded, worker source:', workerSrc);
-
 /**
- * Extract text from PDF - Returns base64 for GPT-4 Vision API processing
- * Note: PDF.js cannot run in service workers due to import() restrictions
- * Instead, we convert the PDF to base64 and send to GPT-4 Vision API
+ * Extract text from PDF bytes using a lightweight, PDF.js-free heuristic.
  *
  * @param {Uint8Array} pdfData - Binary PDF data
- * @returns {Promise<Object>} Object with base64 data for Vision API
+ * @returns {Promise<string>} Approximate text content from the PDF
  */
 export async function extractTextFromPDF(pdfData) {
   try {
-    console.log('Converting PDF to base64 for GPT-4 Vision API...');
-    console.log('Note: PDF.js cannot run in Chrome service workers due to import() restrictions');
+    console.log('Heuristic PDF text extraction starting. Byte length:', pdfData.length);
 
-    // Convert PDF to base64
-    const base64 = uint8ArrayToBase64(pdfData);
+    // Decode bytes to a latin1 string (preserves byte values)
+    const decoder = new TextDecoder('latin1');
+    const pdfString = decoder.decode(pdfData);
 
-    console.log('PDF converted to base64, length:', base64.length);
+    // In many PDFs, visible text appears in parentheses. Extract those.
+    const textMatches = pdfString.match(/\(([^)]{3,})\)/g);
+    let extractedText = '';
 
-    // Return special marker indicating this needs Vision API processing
-    return {
-      useVisionAPI: true,
-      base64: base64,
-      mimeType: 'application/pdf'
-    };
+    if (textMatches && textMatches.length > 0) {
+      console.log(`Found ${textMatches.length} candidate text strings in PDF`);
 
+      for (const match of textMatches) {
+        let text = match.slice(1, -1); // Remove surrounding parentheses
+
+        // Skip very short or obviously binary chunks
+        if (text.length < 3 || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(text)) {
+          continue;
+        }
+
+        // Unescape common PDF escape sequences
+        text = text
+          .replace(/\\n/g, ' ')
+          .replace(/\\r/g, ' ')
+          .replace(/\\t/g, ' ')
+          .replace(/\\\\/g, '\\')
+          .replace(/\\([()])/g, '$1');
+
+        extractedText += text + ' ';
+      }
+    }
+
+    extractedText = extractedText.trim();
+    console.log('Heuristic PDF text length:', extractedText.length);
+    console.log('Heuristic PDF text sample:', extractedText.substring(0, 500));
+
+    return extractedText;
   } catch (error) {
-    console.error('PDF base64 conversion failed:', error);
-    console.error('Error details:', error.message);
-    return null;
+    console.error('Heuristic PDF text extraction failed:', error);
+    throw error;
   }
 }
 
@@ -56,118 +70,25 @@ function hexToText(hex) {
 }
 
 /**
- * Extract text using OCR - For now, return base64 for GPT-4 Vision
+ * Extract text using OCR fallback.
+ * Currently we do not run a real OCR engine in the service worker.
+ * We simply reuse the heuristic text extraction as a best-effort fallback.
+ *
  * @param {Uint8Array} pdfData - Binary PDF data
- * @returns {Promise<string>} Base64 PDF for vision API
+ * @returns {Promise<string>} Extracted text (same heuristic as extractTextFromPDF)
  */
 export async function extractWithOCR(pdfData) {
   try {
-    console.log('OCR fallback: Converting PDF to base64 for GPT-4 Vision API');
-
-    // Convert PDF to base64 - we'll send this to GPT-4 Vision
-    // Note: This is a workaround since we can't run Tesseract in service worker
-    const base64 = uint8ArrayToBase64(pdfData);
-
-    console.log('PDF converted to base64, length:', base64.length);
-
-    // Return a message indicating this needs vision API
-    return `[PDF_BASE64_FOR_VISION_API]\n\nThis PDF requires OCR. The PDF has been converted to base64.\n\nUse GPT-4 Vision API or download a proper PDF.js library to extract text from this document.\n\nFor now, please try uploading a PDF with selectable text, or the system will need to be enhanced with proper OCR capabilities.`;
+    console.log('OCR fallback: reusing heuristic PDF text extraction.');
+    return await extractTextFromPDF(pdfData);
   } catch (error) {
-    console.error('OCR/Base64 conversion failed:', error);
-    throw new Error('Failed to process PDF for OCR. Please try a different PDF file.');
+    console.error('OCR fallback extraction failed:', error);
+    throw new Error('Failed to process PDF. Please try a different PDF file.');
   }
 }
 
-/**
- * Convert PDF pages to images for OCR
- * @param {Uint8Array} pdfData - Binary PDF data
- * @returns {Promise<Array>} Array of image data URLs
- */
-async function convertPDFToImages(pdfData) {
-  try {
-    await initPDFJS();
-
-    const loadingTask = pdfjsLib.getDocument({ data: pdfData });
-    const pdf = await loadingTask.promise;
-
-    const images = [];
-
-    // Convert each page to image
-    for (let pageNum = 1; pageNum <= Math.min(pdf.numPages, 10); pageNum++) { // Limit to 10 pages
-      const page = await pdf.getPage(pageNum);
-      const viewport = page.getViewport({ scale: 2.0 });
-
-      // Create canvas
-      const canvas = new OffscreenCanvas(viewport.width, viewport.height);
-      const context = canvas.getContext('2d');
-
-      await page.render({
-        canvasContext: context,
-        viewport: viewport
-      }).promise;
-
-      // Convert canvas to blob
-      const blob = await canvas.convertToBlob({ type: 'image/png' });
-      const imageUrl = URL.createObjectURL(blob);
-
-      images.push(imageUrl);
-    }
-
-    return images;
-  } catch (error) {
-    console.error('PDF to image conversion failed:', error);
-    throw error;
-  }
-}
-
-/**
- * Load Tesseract.js library
- */
-async function loadTesseract() {
-  try {
-    // Import Tesseract from CDN
-    const { createWorker } = await import('https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.esm.min.js');
-    const worker = await createWorker();
-    return worker;
-  } catch (error) {
-    console.error('Failed to load Tesseract:', error);
-    throw error;
-  }
-}
-
-/**
- * Convert Uint8Array to base64
- */
-function uint8ArrayToBase64(uint8Array) {
-  let binary = '';
-  const len = uint8Array.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(uint8Array[i]);
-  }
-  return btoa(binary);
-}
-
-/**
- * Simplified PDF text extraction using fetch and PDF.js
- * This is a fallback method that works in service workers
- */
-export async function extractTextFromPDFSimple(pdfUrl) {
-  try {
-    const response = await fetch(pdfUrl);
-    const arrayBuffer = await response.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-
-    // For now, return base64 encoded PDF for AI to process directly
-    // OpenAI's GPT-4 Vision can handle PDFs
-    const base64 = uint8ArrayToBase64(uint8Array);
-
-    return {
-      type: 'pdf_base64',
-      data: base64,
-      size: uint8Array.length
-    };
-  } catch (error) {
-    console.error('Simple PDF extraction failed:', error);
-    throw error;
-  }
-}
+// NOTE: All PDF.js and Tesseract/OCR-related code has been removed from this
+// module because it is not compatible with Chrome's service worker
+// restrictions (no dynamic import()). If you later want full-fidelity PDF
+// parsing, it should be done in an offscreen document or content script, not
+// directly in the background service worker.
