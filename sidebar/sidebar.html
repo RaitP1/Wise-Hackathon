@@ -7,6 +7,26 @@
   <link rel="stylesheet" href="sidebar.css">
 </head>
 <body>
+  <!-- Full-screen loading overlay -->
+  <div id="fullscreen-loading" class="fullscreen-overlay hidden">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Sending your payment...</p>
+    </div>
+  </div>
+
+  <!-- Success screen -->
+  <div id="success-screen" class="fullscreen-overlay hidden">
+    <div class="success-content">
+      <img src="../icons/confetti-large 2x.png" alt="Success" class="success-icon">
+      <h1 class="success-title">All Set!</h1>
+      <p class="success-message">Your payment has been successfully sent and is being processed.</p>
+      <button id="return-btn" class="btn btn-primary">
+        Return to Transfer
+      </button>
+    </div>
+  </div>
+
   <div class="container">
     <header>
       <img src="../icons/Wise Logo/Wise_Logo_ForestGreen_RGB.svg" alt="Wise" style="height: 32px; margin-bottom: 16px;">
@@ -104,14 +124,13 @@
 
       <!-- Action buttons -->
       <div class="form-actions">
-        <button type="button" id="extract-btn" class="btn btn-secondary">
-          <img src="../icons/magnifying-glass-large 2x.png" alt="" class="icon" style="width: 20px; height: 20px;">
-          Extract Invoice Data
+        <button type="submit" id="send-btn" class="btn btn-primary">
+          <img src="../icons/plane-large 2x.png" alt="" class="icon">
+          Send Payment
         </button>
 
-        <button type="submit" id="send-btn" class="btn btn-primary">
-          <img src="../icons/plane-large 2x.png" alt="" class="icon" style="width: 20px; height: 20px;">
-          Send Payment
+        <button type="button" id="extract-btn" class="btn btn-secondary">
+          Extract from Invoice
         </button>
       </div>
     </form>

@@ -17,6 +17,9 @@
   const successDiv = document.getElementById('success');
   const dismissErrorBtn = document.getElementById('dismiss-error');
   const form = document.getElementById('transfer-form');
+  const fullscreenLoading = document.getElementById('fullscreen-loading');
+  const successScreen = document.getElementById('success-screen');
+  const returnBtn = document.getElementById('return-btn');
 
   // Form fields
   const fields = {
@@ -38,6 +41,7 @@
   settingsLink.addEventListener('click', handleSettings);
   dismissErrorBtn.addEventListener('click', hideError);
   form.addEventListener('submit', handleSubmit);
+  returnBtn.addEventListener('click', handleReturn);
 
   /**
    * Handle invoice extraction
@@ -224,8 +228,6 @@
     }
 
     try {
-      setButtonLoading(sendBtn, true);
-
       // Collect form data
       const formData = {
         receiverName: fields.receiverName.value,
@@ -241,20 +243,21 @@
 
       console.log('Submitting payment:', formData);
 
+      // Show full-screen loading
+      showFullscreenLoading();
+
       // Here you would send to your bank's API
       // For now, just simulate success
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
-      showSuccess('Payment submitted successfully!');
-
-      // Optionally clear form after successful submission
-      // setTimeout(() => clearForm(), 2000);
+      // Hide loading and show success screen
+      hideFullscreenLoading();
+      showSuccessScreen();
 
     } catch (error) {
       console.error('Submission error:', error);
+      hideFullscreenLoading();
       showError('Failed to submit payment. Please try again.');
-    } finally {
-      setButtonLoading(sendBtn, false);
     }
   }
 
@@ -365,6 +368,47 @@
       button.classList.remove('loading');
       button.disabled = false;
     }
+  }
+
+  /**
+   * Show full-screen loading
+   */
+  function showFullscreenLoading() {
+    fullscreenLoading.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  /**
+   * Hide full-screen loading
+   */
+  function hideFullscreenLoading() {
+    fullscreenLoading.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  /**
+   * Show success screen
+   */
+  function showSuccessScreen() {
+    successScreen.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  /**
+   * Hide success screen
+   */
+  function hideSuccessScreen() {
+    successScreen.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  /**
+   * Handle return to form
+   */
+  function handleReturn(e) {
+    e.preventDefault();
+    hideSuccessScreen();
+    clearForm();
   }
 
   // Initialize
