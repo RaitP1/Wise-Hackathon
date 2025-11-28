@@ -5,6 +5,29 @@
 (function() {
   'use strict';
 
+  // Cookie helper functions
+  function getCookie(name) {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for(let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+  }
+
+  function deleteCookie(name) {
+    document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  }
+
+  // Check if user is logged in
+  if (!getCookie('wise_auth_session')) {
+    console.log('Not logged in, redirecting to login...');
+    window.location.href = 'login.html';
+    return;
+  }
+
   // DOM elements
   const extractBtn = document.getElementById('extract-btn');
   const sendBtn = document.getElementById('send-btn');
@@ -21,6 +44,7 @@
   const successScreen = document.getElementById('success-screen');
   const returnBtn = document.getElementById('return-btn');
   const dropZone = document.getElementById('drop-zone');
+  const logoutBtn = document.getElementById('logout-btn');
 
   // Currency-specific bank field requirements
   const CURRENCY_BANK_FIELDS = {
@@ -177,6 +201,7 @@
   dismissErrorBtn.addEventListener('click', hideError);
   form.addEventListener('submit', handleSubmit);
   returnBtn.addEventListener('click', handleReturn);
+  logoutBtn.addEventListener('click', handleLogout);
 
   // Drag and drop event listeners
   dropZone.addEventListener('dragover', handleDragOver);
@@ -635,6 +660,20 @@
     e.preventDefault();
     hideSuccessScreen();
     clearForm();
+  }
+
+  /**
+   * Handle logout
+   */
+  function handleLogout(e) {
+    e.preventDefault();
+    console.log('Logging out...');
+
+    // Delete the session cookie
+    deleteCookie('wise_auth_session');
+
+    // Redirect to login page
+    window.location.href = 'login.html';
   }
 
   /**

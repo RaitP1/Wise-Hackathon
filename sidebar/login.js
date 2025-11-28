@@ -5,6 +5,31 @@
 (function() {
   'use strict';
 
+  // Cookie helper functions
+  function setCookie(name, value, hours) {
+    const date = new Date();
+    date.setTime(date.getTime() + (hours * 60 * 60 * 1000));
+    const expires = "expires=" + date.toUTCString();
+    document.cookie = name + "=" + value + ";" + expires + ";path=/";
+  }
+
+  function getCookie(name) {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for(let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+  }
+
+  // Check if already logged in
+  if (getCookie('wise_auth_session')) {
+    console.log('Already logged in, redirecting to sidebar...');
+    window.location.href = 'sidebar.html';
+  }
+
   // DOM elements
   const loginForm = document.getElementById('login-form');
   const emailInput = document.getElementById('email');
@@ -59,7 +84,12 @@
       // Simulate additional loading time
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      console.log('Login successful, redirecting to main app...');
+      console.log('Login successful, creating session cookie...');
+
+      // Create session cookie that expires in 24 hours
+      setCookie('wise_auth_session', 'authenticated', 24);
+
+      console.log('Redirecting to main app...');
 
       // Add fade out animation before redirect
       document.body.style.opacity = '0';
