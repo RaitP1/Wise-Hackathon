@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in to Wise</title>
+  <link rel="stylesheet" href="login.css">
+</head>
+<body>
+  <!-- Loading screen -->
+  <div id="loading-screen" class="loading-overlay hidden">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Signing you in...</p>
+    </div>
+  </div>
+
+  <div class="login-container">
+    <div class="login-card">
+      <!-- Wise Logo -->
+      <div class="logo-container">
+        <img src="../icons/Wise Logo/Wise_Logo_ForestGreen_RGB.svg" alt="Wise" class="wise-logo">
+      </div>
+
+      <!-- Login Title -->
+      <h1 class="login-title">Sign in</h1>
+      <p class="login-subtitle">Enter your email to continue</p>
+
+      <!-- Login Form -->
+      <form id="login-form" class="login-form">
+        <div class="form-group">
+          <label for="email" class="form-label">Email</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            class="form-input"
+            placeholder="your.email@example.com"
+            required
+            autocomplete="email"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            class="form-input"
+            placeholder="Enter your password"
+            required
+            autocomplete="current-password"
+          >
+        </div>
+
+        <!-- Error message -->
+        <div id="error-message" class="error-message hidden">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 0C3.6 0 0 3.6 0 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm1 12H7V7h2v5zm0-6H7V4h2v2z"/>
+          </svg>
+          <span id="error-text"></span>
+        </div>
+
+        <button type="submit" id="login-btn" class="login-btn">
+          Continue
+        </button>
+      </form>
+
+      <!-- Footer Links -->
+      <div class="login-footer">
+        <a href="#" class="footer-link">Forgot password?</a>
+        <span class="separator">•</span>
+        <a href="#" class="footer-link">Create account</a>
+      </div>
+    </div>
+
+    <!-- Bottom branding -->
+    <div class="bottom-branding">
+      <img src="../icons/Powered by Wise/Powered_by_Wise_ForestGreen_RGB.svg" alt="Powered by Wise" class="powered-logo">
+    </div>
+  </div>
+
+  <script src="login.js"></script>
+</body>
+</html>

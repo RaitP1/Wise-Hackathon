@@ -28,7 +28,7 @@
     }
   ],
   "side_panel": {
-    "default_path": "sidebar/sidebar.html"
+    "default_path": "sidebar/login.html"
   },
   "action": {
     "default_title": "Open Invoice Extractor",
