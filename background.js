@@ -19,6 +19,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Keep channel open for async response
   }
 
+  if (message.action === 'processPDFFile') {
+    handlePDFFileProcessing(message).then(sendResponse).catch(error => {
+      sendResponse({ error: error.message });
+    });
+    return true; // Keep channel open for async response
+  }
+
   if (message.action === 'extractWithAI') {
     handleAIExtraction(message).then(sendResponse).catch(error => {
       sendResponse({ error: error.message });
@@ -142,6 +149,82 @@ async function fetchGoogleDrivePDF(url) {
     console.error('Google Drive PDF fetch error:', error);
     // Provide helpful error message
     throw new Error('Cannot access PDF from Gmail attachment viewer. Please download the PDF and open it in a new tab to extract data.');
+  }
+}
+
+/**
+ * Ensure offscreen document exists
+ */
+async function setupOffscreenDocument() {
+  const existingContexts = await chrome.runtime.getContexts({
+    contextTypes: ['OFFSCREEN_DOCUMENT']
+  });
+
+  if (existingContexts.length > 0) {
+    return; // Already exists
+  }
+
+  console.log('Creating offscreen document for PDF processing...');
+  await chrome.offscreen.createDocument({
+    url: 'offscreen/offscreen.html',
+    reasons: ['DOM_SCRAPING'], // Need DOM for PDF.js
+    justification: 'PDF text extraction requires PDF.js which needs a DOM environment'
+  });
+  console.log('Offscreen document created');
+}
+
+/**
+ * Handle PDF file processing from drag-and-drop
+ */
+async function handlePDFFileProcessing(message) {
+  try {
+    console.log('=== Background: Starting PDF file processing ===');
+    const { pdfData, fileName } = message;
+
+    console.log('PDF file name:', fileName);
+    console.log('PDF data size:', pdfData.length, 'bytes');
+
+    // Validate PDF header
+    const uint8Array = new Uint8Array(pdfData);
+    const header = String.fromCharCode(...uint8Array.slice(0, 5));
+    console.log('PDF header:', header);
+    if (!header.startsWith('%PDF-')) {
+      throw new Error('Invalid PDF file: Missing PDF header');
+    }
+
+    // Setup offscreen document for PDF.js
+    await setupOffscreenDocument();
+
+    // Send PDF to offscreen document for text extraction
+    console.log('Sending PDF to offscreen document for processing...');
+    const result = await chrome.runtime.sendMessage({
+      action: 'extractPDFText',
+      pdfData: pdfData
+    });
+
+    if (!result.success) {
+      throw new Error(result.error || 'PDF extraction failed in offscreen document');
+    }
+
+    const extractedText = result.text;
+    console.log('Text extracted from offscreen:', extractedText ? extractedText.length : 0, 'characters');
+
+    if (!extractedText || extractedText.trim().length < 50) {
+      throw new Error('Could not extract enough text from PDF. The PDF might be image-based or empty.');
+    }
+
+    console.log('First 500 chars:', extractedText.substring(0, 500));
+    console.log('=== Background: PDF processing complete ===');
+
+    return {
+      source_type: 'PDF',
+      text: extractedText,
+      fileName: fileName,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('PDF file processing error:', error);
+    throw error;
   }
 }
 

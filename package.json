@@ -19,6 +19,11 @@
   ],
   "author": "Global Bank Development Team",
   "license": "PROPRIETARY",
-  "devDependencies": {},
-  "dependencies": {}
+  "main": "background.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "pdfjs-dist": "^5.4.394"
+  }
 }

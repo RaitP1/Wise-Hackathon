@@ -13,10 +13,17 @@ const MODEL = 'gpt-4-turbo-preview'; // or 'gpt-4-vision-preview' for PDFs with 
  */
 export async function extractInvoiceFieldsWithAI(data, apiKey) {
   try {
-    const prompt = buildExtractionPrompt(data);
-
     console.log('=== AI EXTRACTION START ===');
     console.log('Source type:', data.source_type);
+
+    // Check if we need to use Vision API for PDF
+    if (data.source_type === 'PDF_VISION' && data.useVisionAPI) {
+      console.log('Using GPT-4 Vision API for PDF processing');
+      return await extractFromPDFWithVision(data.pdfBase64, apiKey);
+    }
+
+    const prompt = buildExtractionPrompt(data);
+
     console.log('Text length:', data.text ? data.text.length : 0);
     console.log('Text preview:', data.text ? data.text.substring(0, 500) : 'NO TEXT');
 
@@ -76,7 +83,10 @@ export async function extractInvoiceFieldsWithAI(data, apiKey) {
  * Build extraction prompt from data
  */
 function buildExtractionPrompt(data) {
-  if (data.source_type === 'PDF') {
+  if (data.source_type === 'PDF_VISION') {
+    // This will be handled differently - see extractInvoiceFieldsWithAI
+    return null;
+  } else if (data.source_type === 'PDF') {
     return `Extract invoice information from the following PDF text content:\n\n${data.text}`;
   } else {
     // DOM/HTML content
@@ -221,6 +231,112 @@ function validateIBAN(iban) {
   // Basic IBAN format check (2 letters + 2 digits + up to 30 alphanumeric)
   const ibanRegex = /^[A-Z]{2}\d{2}[A-Z0-9]{1,30}$/;
   return ibanRegex.test(iban);
+}
+
+/**
+ * Extract fields from PDF using GPT-4o with text-only approach
+ * Since Vision API doesn't support PDFs and we can't run PDF.js in service worker,
+ * we'll attempt a basic text extraction and send that to GPT-4
+ *
+ * @param {string} base64PDF - Base64 encoded PDF
+ * @param {string} apiKey - OpenAI API key
+ */
+async function extractFromPDFWithVision(base64PDF, apiKey) {
+  try {
+    console.log('Processing PDF for GPT-4o...');
+    console.log('PDF base64 length:', base64PDF.length);
+
+    // Decode base64 back to binary
+    const binaryString = atob(base64PDF);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    // Try basic text extraction from PDF
+    const decoder = new TextDecoder('latin1');
+    const pdfString = decoder.decode(bytes);
+
+    // Extract all text in parentheses (PDF text objects)
+    const textMatches = pdfString.match(/\(([^)]{3,})\)/g);
+    let extractedText = '';
+
+    if (textMatches && textMatches.length > 0) {
+      console.log(`Found ${textMatches.length} text strings in PDF`);
+
+      for (const match of textMatches) {
+        let text = match.slice(1, -1); // Remove parentheses
+
+        // Skip if looks like metadata or binary
+        if (text.length < 3 || /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(text)) {
+          continue;
+        }
+
+        // Unescape common PDF escapes
+        text = text.replace(/\\n/g, ' ')
+                   .replace(/\\r/g, ' ')
+                   .replace(/\\t/g, ' ')
+                   .replace(/\\\\/g, '\\')
+                   .replace(/\\([()])/g, '$1');
+
+        extractedText += text + ' ';
+      }
+    }
+
+    extractedText = extractedText.trim();
+    console.log(`Extracted ${extractedText.length} characters from PDF`);
+    console.log('Sample text:', extractedText.substring(0, 500));
+
+    if (extractedText.length < 50) {
+      throw new Error('Could not extract enough text from PDF. The PDF might use custom fonts or be image-based. Please try a different PDF or use the "Extract from Invoice" button on a web page.');
+    }
+
+    // Send extracted text to GPT-4 for processing
+    console.log('Sending extracted PDF text to GPT-4o...');
+
+    const response = await fetch(OPENAI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: getSystemPrompt()
+          },
+          {
+            role: 'user',
+            content: `Extract invoice information from the following PDF text content:\n\n${extractedText}`
+          }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.1,
+        max_tokens: 1000
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(`GPT-4 API error: ${error.error?.message || response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log('GPT-4o raw response:', result);
+
+    const extractedJSON = result.choices[0].message.content;
+    console.log('GPT-4o content:', extractedJSON);
+
+    const extractedFields = JSON.parse(extractedJSON);
+    console.log('GPT-4o parsed fields:', extractedFields);
+
+    return normalizeFields(extractedFields);
+  } catch (error) {
+    console.error('PDF GPT-4 extraction error:', error);
+    throw error;
+  }
 }
 
 /**

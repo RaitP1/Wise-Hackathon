@@ -6,7 +6,8 @@
   "permissions": [
     "activeTab",
     "storage",
-    "sidePanel"
+    "sidePanel",
+    "offscreen"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -44,7 +45,7 @@
   "options_page": "options/options.html",
   "web_accessible_resources": [
     {
-      "resources": ["libs/pdf.js", "libs/pdf.worker.js"],
+      "resources": ["libs/pdf.worker.mjs"],
       "matches": ["<all_urls>"]
     }
   ]

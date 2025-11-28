@@ -20,6 +20,7 @@
   const fullscreenLoading = document.getElementById('fullscreen-loading');
   const successScreen = document.getElementById('success-screen');
   const returnBtn = document.getElementById('return-btn');
+  const dropZone = document.getElementById('drop-zone');
 
   // Form fields
   const fields = {
@@ -42,6 +43,12 @@
   dismissErrorBtn.addEventListener('click', hideError);
   form.addEventListener('submit', handleSubmit);
   returnBtn.addEventListener('click', handleReturn);
+
+  // Drag and drop event listeners
+  dropZone.addEventListener('dragover', handleDragOver);
+  dropZone.addEventListener('dragleave', handleDragLeave);
+  dropZone.addEventListener('drop', handleDrop);
+  dropZone.addEventListener('click', handleDropZoneClick);
 
   /**
    * Handle invoice extraction
@@ -409,6 +416,170 @@
     e.preventDefault();
     hideSuccessScreen();
     clearForm();
+  }
+
+  /**
+   * Handle drag over event
+   */
+  function handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.add('drag-over');
+  }
+
+  /**
+   * Handle drag leave event
+   */
+  function handleDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.remove('drag-over');
+  }
+
+  /**
+   * Handle drop event
+   */
+  async function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.remove('drag-over');
+
+    const files = e.dataTransfer.files;
+
+    if (files.length === 0) {
+      showError('No file was dropped. Please try again.');
+      return;
+    }
+
+    const file = files[0];
+
+    // Validate file type
+    if (file.type !== 'application/pdf') {
+      showError('Please drop a PDF file. Other file types are not supported.');
+      return;
+    }
+
+    // Process the PDF file
+    await processPDFFile(file);
+  }
+
+  /**
+   * Handle drop zone click (open file picker)
+   */
+  function handleDropZoneClick(e) {
+    e.preventDefault();
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        await processPDFFile(file);
+      }
+    };
+    input.click();
+  }
+
+  /**
+   * Process a PDF file from drag-and-drop or file picker
+   */
+  async function processPDFFile(file) {
+    try {
+      // Check if API key is configured
+      const apiKey = await checkApiKey();
+      if (!apiKey) {
+        showError('Please configure your OpenAI API key in the extension settings.');
+        return;
+      }
+
+      console.log('Processing PDF file:', file.name, 'Size:', file.size, 'bytes');
+
+      // Show loading state
+      showStatus('Reading PDF file...');
+      setButtonLoading(extractBtn, true);
+
+      // Read file as ArrayBuffer
+      const arrayBuffer = await readFileAsArrayBuffer(file);
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      // Convert to base64 for message passing (or use array)
+      const pdfDataArray = Array.from(uint8Array);
+
+      console.log('PDF file read, size:', pdfDataArray.length, 'bytes');
+
+      // Update status
+      statusText.textContent = 'Extracting text from PDF (this may take a moment)...';
+
+      // Send to background script for PDF processing
+      console.log('Sending PDF to background script for processing...');
+      const extractedData = await chrome.runtime.sendMessage({
+        action: 'processPDFFile',
+        pdfData: pdfDataArray,
+        fileName: file.name
+      });
+      console.log('Received response from background:', extractedData);
+
+      if (extractedData.error) {
+        throw new Error(extractedData.error);
+      }
+
+      console.log('PDF extraction complete:', extractedData);
+
+      // Check if we're using Vision API or text extraction
+      if (extractedData.useVisionAPI) {
+        console.log('Using Vision API for PDF processing');
+        console.log('PDF base64 length:', extractedData.pdfBase64 ? extractedData.pdfBase64.length : 0);
+      } else {
+        // Text extraction path
+        if (!extractedData.text || extractedData.text.trim().length < 50) {
+          throw new Error('Could not extract text from PDF. The PDF might be image-based or empty.');
+        }
+        console.log('Extracted text length:', extractedData.text.length);
+        console.log('First 500 chars:', extractedData.text.substring(0, 500));
+      }
+
+      // Update status
+      statusText.textContent = 'Processing with AI (GPT-4 Vision)...';
+
+      // Send to background for AI processing
+      const result = await chrome.runtime.sendMessage({
+        action: 'extractWithAI',
+        data: extractedData
+      });
+
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      console.log('AI Result:', result);
+      console.log('AI Extracted Fields:', JSON.stringify(result.fields, null, 2));
+
+      // Fill form with extracted data
+      fillForm(result.fields);
+
+      // Show success
+      hideStatus();
+      showSuccess('Invoice data extracted successfully from PDF!');
+
+    } catch (error) {
+      console.error('PDF file processing error:', error);
+      hideStatus();
+      showError(error.message || 'Failed to process PDF file. Please try again.');
+    } finally {
+      setButtonLoading(extractBtn, false);
+    }
+  }
+
+  /**
+   * Read file as ArrayBuffer
+   */
+  function readFileAsArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsArrayBuffer(file);
+    });
   }
 
   // Initialize
