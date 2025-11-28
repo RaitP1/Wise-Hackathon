@@ -15,6 +15,11 @@ export async function extractInvoiceFieldsWithAI(data, apiKey) {
   try {
     const prompt = buildExtractionPrompt(data);
 
+    console.log('=== AI EXTRACTION START ===');
+    console.log('Source type:', data.source_type);
+    console.log('Text length:', data.text ? data.text.length : 0);
+    console.log('Text preview:', data.text ? data.text.substring(0, 500) : 'NO TEXT');
+
     const response = await fetch(OPENAI_API_URL, {
       method: 'POST',
       headers: {
@@ -47,11 +52,20 @@ export async function extractInvoiceFieldsWithAI(data, apiKey) {
     const result = await response.json();
     const extractedText = result.choices[0].message.content;
 
+    console.log('AI Raw Response:', extractedText);
+
     // Parse JSON response
     const extractedFields = JSON.parse(extractedText);
 
+    console.log('AI Parsed Fields:', extractedFields);
+
     // Validate and normalize fields
-    return normalizeFields(extractedFields);
+    const normalized = normalizeFields(extractedFields);
+
+    console.log('AI Normalized Fields:', normalized);
+    console.log('=== AI EXTRACTION END ===');
+
+    return normalized;
   } catch (error) {
     console.error('AI extraction error:', error);
     throw error;

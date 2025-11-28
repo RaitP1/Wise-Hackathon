@@ -60,13 +60,26 @@
       // Get active tab
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-      // Request extraction from content script
+      // Request extraction from content script (main frame only)
       const extractedData = await chrome.tabs.sendMessage(tab.id, {
         action: 'extractInvoice'
       });
 
+      console.log('Extracted data:', extractedData);
+
       if (extractedData.error) {
         throw new Error(extractedData.error);
+      }
+
+      // Check if we got empty text
+      if (!extractedData.text || extractedData.text.trim().length < 50) {
+        throw new Error('Could not find email content on this page. Please open an email in Gmail and try again.');
+      }
+
+      // Log the extracted text for debugging
+      if (extractedData.text) {
+        console.log('Extracted text length:', extractedData.text.length);
+        console.log('First 500 chars:', extractedData.text.substring(0, 500));
       }
 
       // Update status
@@ -81,6 +94,10 @@
       if (result.error) {
         throw new Error(result.error);
       }
+
+      // Debug: Log what AI returned
+      console.log('AI Result:', result);
+      console.log('AI Extracted Fields:', JSON.stringify(result.fields, null, 2));
 
       // Fill form with extracted data
       fillForm(result.fields);
@@ -102,53 +119,83 @@
    * Fill form with extracted data
    */
   function fillForm(data) {
-    console.log('Filling form with:', data);
+    console.log('=== FILLING FORM ===');
+    console.log('Data received:', data);
 
     // Fill each field and mark as auto-filled
     if (data.receiver_name) {
+      console.log('✓ Setting receiver_name:', data.receiver_name);
       fields.receiverName.value = data.receiver_name;
       fields.receiverName.classList.add('auto-filled');
+    } else {
+      console.log('✗ receiver_name is empty/null');
     }
 
     if (data.iban) {
+      console.log('✓ Setting iban:', data.iban);
       fields.iban.value = formatIBAN(data.iban);
       fields.iban.classList.add('auto-filled');
+    } else {
+      console.log('✗ iban is empty/null');
     }
 
     if (data.amount) {
+      console.log('✓ Setting amount:', data.amount);
       fields.amount.value = data.amount;
       fields.amount.classList.add('auto-filled');
+    } else {
+      console.log('✗ amount is empty/null');
     }
 
     if (data.currency) {
+      console.log('✓ Setting currency:', data.currency);
       fields.currency.value = data.currency;
       fields.currency.classList.add('auto-filled');
+    } else {
+      console.log('✗ currency is empty/null');
     }
 
     if (data.reference_number) {
+      console.log('✓ Setting reference_number:', data.reference_number);
       fields.referenceNumber.value = data.reference_number;
       fields.referenceNumber.classList.add('auto-filled');
+    } else {
+      console.log('✗ reference_number is empty/null');
     }
 
     if (data.description) {
+      console.log('✓ Setting description:', data.description);
       fields.description.value = data.description;
       fields.description.classList.add('auto-filled');
+    } else {
+      console.log('✗ description is empty/null');
     }
 
     if (data.invoice_number) {
+      console.log('✓ Setting invoice_number:', data.invoice_number);
       fields.invoiceNumber.value = data.invoice_number;
       fields.invoiceNumber.classList.add('auto-filled');
+    } else {
+      console.log('✗ invoice_number is empty/null');
     }
 
     if (data.issue_date) {
+      console.log('✓ Setting issue_date:', data.issue_date);
       fields.issueDate.value = data.issue_date;
       fields.issueDate.classList.add('auto-filled');
+    } else {
+      console.log('✗ issue_date is empty/null');
     }
 
     if (data.due_date) {
+      console.log('✓ Setting due_date:', data.due_date);
       fields.dueDate.value = data.due_date;
       fields.dueDate.classList.add('auto-filled');
+    } else {
+      console.log('✗ due_date is empty/null');
     }
+
+    console.log('=== FORM FILLING COMPLETE ===');
   }
 
   /**
